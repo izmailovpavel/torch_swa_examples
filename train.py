@@ -4,7 +4,7 @@ import sys
 import time
 import torch
 import torch.nn.functional as F
-from torchcontrib.optim.swa import SWA, bn_update
+from torchcontrib.optim.swa import SWA
 import torchvision
 import models
 import utils
@@ -107,7 +107,7 @@ if args.swa:
     print('SWA training')
     steps_per_epoch = len(loaders['train'].dataset) / args.batch_size
     steps_per_epoch = int(steps_per_epoch)
-    print(f"Steps per epoch: {steps_per_epoch}")
+    print("Steps per epoch:", steps_per_epoch)
     optimizer = SWA(optimizer, swa_start=args.swa_start * steps_per_epoch,
                     swa_freq=steps_per_epoch, swa_lr=args.swa_lr)
 else:
@@ -150,7 +150,7 @@ for epoch in range(start_epoch, args.epochs):
         if epoch == 0 or epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
             # Batchnorm update
             optimizer.swap_swa_sgd()
-            bn_update(loaders['train'], model)
+            optimizer.bn_update(loaders['train'], model)
             swa_res = utils.eval(loaders['test'], model, criterion)
             optimizer.swap_swa_sgd()
         else:
