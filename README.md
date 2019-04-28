@@ -1,9 +1,9 @@
 # Stochastic Weight Averaging (SWA)
-This repository contains a PyTorch implementation of the Stochastic Weight Averaging (SWA) training method for DNNs from the paper
+This repository contains exapmples of using the implementation of the Stochastic Weight Averaging (SWA) training method for DNNs in `PyTorch.contrib`. The code in this repo is adapted from the original `PyTorch` [implementation](https://github.com/timgaripov/swa). Please see the [BlogPost (Add link)] for more details about SWA and the `PyTorch.contrib` implementation. SWA was proposed in the paper
 
 [Averaging Weights Leads to Wider Optima and Better Generalization](https://arxiv.org/abs/1803.05407) (UAI 2018)
 
-by Pavel Izmailov, Dmitrii Podoprikhin, Timur Garipov, Dmitry Vetrov and Andrew Gordon Wilson
+by Pavel Izmailov, Dmitrii Podoprikhin, Timur Garipov, Dmitry Vetrov and Andrew Gordon Wilson. 
 
 # Introduction
 
@@ -31,6 +31,7 @@ Please cite our work if you find this approach useful in your research:
 # Dependencies
 * [PyTorch](http://pytorch.org/)
 * [torchvision](https://github.com/pytorch/vision/)
+* [torch-contrib](https://github.com/pytorch/contrib)
 * [tabulate](https://pypi.python.org/pypi/tabulate/)
 
 # Usage
