@@ -150,7 +150,7 @@ for epoch in range(start_epoch, args.epochs):
         if epoch == 0 or epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
             # Batchnorm update
             optimizer.swap_swa_sgd()
-            optimizer.bn_update(loaders['train'], model)
+            optimizer.bn_update(loaders['train'], model, device='cuda')
             swa_res = utils.eval(loaders['test'], model, criterion)
             optimizer.swap_swa_sgd()
         else:
