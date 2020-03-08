@@ -4,11 +4,12 @@ import sys
 import time
 import torch
 import torch.nn.functional as F
-from torchcontrib.optim.swa import SWA
 import torchvision
 import models
 import utils
 import tabulate
+sys.path.append("/home/izmailovpavel/Documents/Projects/pytorch/torch/optim/")
+from swa_utils import AveragedModel, bn_update
 
 
 parser = argparse.ArgumentParser(description='SGD/SWA training')
@@ -35,8 +36,8 @@ parser.add_argument('--wd', type=float, default=1e-4, help='weight decay (defaul
 parser.add_argument('--swa', action='store_true', help='swa usage flag (default: off)')
 parser.add_argument('--swa_start', type=float, default=161, metavar='N', help='SWA start epoch number (default: 161)')
 parser.add_argument('--swa_lr', type=float, default=0.05, metavar='LR', help='SWA LR (default: 0.05)')
-#parser.add_argument('--swa_c_epochs', type=int, default=1, metavar='N',
-#                    help='SWA model collection frequency/cycle length in epochs (default: 1)')
+parser.add_argument('--swa_c_epochs', type=int, default=1, metavar='N',
+                    help='SWA model collection frequency/cycle length in epochs (default: 1)')
 
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
 
@@ -76,11 +77,19 @@ loaders = {
         pin_memory=True
     )
 }
-num_classes = max(train_set.train_labels) + 1
+num_classes = max(train_set.targets) + 1
 
 print('Preparing model')
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 model.cuda()
+
+
+if args.swa:
+    print('SWA training')
+    swa_model = AveragedModel(model)
+else:
+    print('SGD training')
+
 
 def schedule(epoch):
     t = (epoch) / (args.swa_start if args.swa else args.epochs)
@@ -102,17 +111,6 @@ optimizer = torch.optim.SGD(
     weight_decay=args.wd
 )
 
-if args.swa:
-    # SWA: initialize SWA optimizer wrapper
-    print('SWA training')
-    steps_per_epoch = len(loaders['train'].dataset) / args.batch_size
-    steps_per_epoch = int(steps_per_epoch)
-    print("Steps per epoch:", steps_per_epoch)
-    optimizer = SWA(optimizer, swa_start=args.swa_start * steps_per_epoch,
-                    swa_freq=steps_per_epoch, swa_lr=args.swa_lr)
-else:
-    print('SGD training')
-
 start_epoch = 0
 if args.resume is not None:
     print('Resume training from %s' % args.resume)
@@ -120,6 +118,10 @@ if args.resume is not None:
     start_epoch = checkpoint['epoch']
     model.load_state_dict(checkpoint['state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer'])
+    if args.swa:
+        swa_state_dict = checkpoint['swa_state_dict']
+        if swa_state_dict is not None:
+            swa_model.load_state_dict(swa_state_dict)
 
 columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'te_loss', 'te_acc', 'time']
 if args.swa:
@@ -130,6 +132,7 @@ utils.save_checkpoint(
     args.dir,
     start_epoch,
     state_dict=model.state_dict(),
+    swa_state_dict=swa_model.state_dict() if args.swa else None,
     optimizer=optimizer.state_dict()
 )
 
@@ -144,15 +147,12 @@ for epoch in range(start_epoch, args.epochs):
     else:
         test_res = {'loss': None, 'accuracy': None}
 
-    if args.swa and (epoch + 1) >= args.swa_start:
-        #utils.moving_average(swa_model, model, 1.0 / (swa_n + 1))
-        #swa_n += 1
+    if args.swa and (epoch + 1) >= args.swa_start and (epoch + 1 - args.swa_start) % args.swa_c_epochs == 0:
+        swa_model.update_parameters(model)
+
         if epoch == 0 or epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
-            # Batchnorm update
-            optimizer.swap_swa_sgd()
-            optimizer.bn_update(loaders['train'], model, device='cuda')
-            swa_res = utils.eval(loaders['test'], model, criterion)
-            optimizer.swap_swa_sgd()
+            bn_update(loaders['train'], swa_model, device=torch.device('cuda'))
+            swa_res = utils.eval(loaders['test'], swa_model, criterion)
         else:
             swa_res = {'loss': None, 'accuracy': None}
 
@@ -161,6 +161,7 @@ for epoch in range(start_epoch, args.epochs):
             args.dir,
             epoch + 1,
             state_dict=model.state_dict(),
+            swa_state_dict=swa_model.state_dict() if args.swa else None,
             optimizer=optimizer.state_dict()
         )
 
@@ -181,5 +182,6 @@ if args.epochs % args.save_freq != 0:
         args.dir,
         args.epochs,
         state_dict=model.state_dict(),
+        swa_state_dict=swa_model.state_dict() if args.swa else None,
         optimizer=optimizer.state_dict()
     )
