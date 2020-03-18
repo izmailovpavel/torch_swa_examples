@@ -9,7 +9,7 @@ import models
 import utils
 import tabulate
 sys.path.append("/home/izmailovpavel/Documents/Projects/pytorch/torch/optim/")
-from swa_utils import AveragedModel, bn_update
+from swa_utils import AveragedModel, bn_update, SWALR
 
 
 parser = argparse.ArgumentParser(description='SGD/SWA training')
@@ -111,6 +111,9 @@ optimizer = torch.optim.SGD(
     weight_decay=args.wd
 )
 
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
+swa_scheduler = SWALR(optimizer, start_epoch=args.swa_start, swa_lr=args.swa_lr)
+
 start_epoch = 0
 if args.resume is not None:
     print('Resume training from %s' % args.resume)
@@ -139,13 +142,15 @@ utils.save_checkpoint(
 for epoch in range(start_epoch, args.epochs):
     time_ep = time.time()
 
-    lr = schedule(epoch)
-    utils.adjust_learning_rate(optimizer, lr)
     train_res = utils.train_epoch(loaders['train'], model, criterion, optimizer)
     if epoch == 0 or epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
         test_res = utils.eval(loaders['test'], model, criterion)
     else:
         test_res = {'loss': None, 'accuracy': None}
+
+    lr = optimizer.param_groups[0]['lr']
+    scheduler.step()
+    swa_scheduler.step()
 
     if args.swa and (epoch + 1) >= args.swa_start and (epoch + 1 - args.swa_start) % args.swa_c_epochs == 0:
         swa_model.update_parameters(model)
