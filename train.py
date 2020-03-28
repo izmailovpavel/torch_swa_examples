@@ -8,8 +8,7 @@ import torchvision
 import models
 import utils
 import tabulate
-sys.path.append("/home/izmailovpavel/Documents/Projects/pytorch/torch/optim/")
-from swa_utils import AveragedModel, bn_update, SWALR
+from torch.optim.swa_utils import AveragedModel, update_bn, SWALR
 
 
 parser = argparse.ArgumentParser(description='SGD/SWA training')
@@ -112,7 +111,7 @@ optimizer = torch.optim.SGD(
 )
 
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
-swa_scheduler = SWALR(optimizer, start_epoch=args.swa_start, swa_lr=args.swa_lr)
+swa_scheduler = SWALR(optimizer, swa_lr=args.swa_lr)
 
 start_epoch = 0
 if args.resume is not None:
@@ -149,14 +148,16 @@ for epoch in range(start_epoch, args.epochs):
         test_res = {'loss': None, 'accuracy': None}
 
     lr = optimizer.param_groups[0]['lr']
-    scheduler.step()
-    swa_scheduler.step()
 
+    if args.swa and (epoch + 1) >= args.swa_start:
+        swa_scheduler.step()
+    else:
+        scheduler.step()
     if args.swa and (epoch + 1) >= args.swa_start and (epoch + 1 - args.swa_start) % args.swa_c_epochs == 0:
         swa_model.update_parameters(model)
 
         if epoch == 0 or epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
-            bn_update(loaders['train'], swa_model, device=torch.device('cuda'))
+            update_bn(loaders['train'], swa_model, device=torch.device('cuda'))
             swa_res = utils.eval(loaders['test'], swa_model, criterion)
         else:
             swa_res = {'loss': None, 'accuracy': None}
