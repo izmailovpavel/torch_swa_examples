@@ -9,6 +9,7 @@ import models
 import utils
 import tabulate
 sys.path.append("/home/izmailovpavel/Documents/Projects/pytorch/torch/optim/")
+sys.path.append("/home/pavel_i/projects/pytorch_swa/torch/optim")
 from swa_utils import AveragedModel, bn_update, SWALR
 
 
@@ -25,13 +26,13 @@ parser.add_argument('--model', type=str, default=None, required=True, metavar='M
 
 parser.add_argument('--resume', type=str, default=None, metavar='CKPT',
                     help='checkpoint to resume training from (default: None)')
-
 parser.add_argument('--epochs', type=int, default=200, metavar='N', help='number of epochs to train (default: 200)')
 parser.add_argument('--save_freq', type=int, default=25, metavar='N', help='save frequency (default: 25)')
 parser.add_argument('--eval_freq', type=int, default=5, metavar='N', help='evaluation frequency (default: 5)')
 parser.add_argument('--lr_init', type=float, default=0.1, metavar='LR', help='initial learning rate (default: 0.01)')
 parser.add_argument('--momentum', type=float, default=0.9, metavar='M', help='SGD momentum (default: 0.9)')
 parser.add_argument('--wd', type=float, default=1e-4, help='weight decay (default: 1e-4)')
+parser.add_argument('--gpu_ids', default='[0]', type=eval, help='IDs of GPUs to use')
 
 parser.add_argument('--swa', action='store_true', help='swa usage flag (default: off)')
 parser.add_argument('--swa_start', type=float, default=161, metavar='N', help='SWA start epoch number (default: 161)')
@@ -82,7 +83,9 @@ num_classes = max(train_set.targets) + 1
 print('Preparing model')
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 model.cuda()
-
+if len(args.gpu_ids > 1):
+    model = torch.nn.DataParallel(model, args.gpu_ids)
+    print("Using gpu_ids {}".format(args.gpu_ids))
 
 if args.swa:
     print('SWA training')
