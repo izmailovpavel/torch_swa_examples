@@ -10,7 +10,8 @@ import utils
 import tabulate
 sys.path.append("/home/izmailovpavel/Documents/Projects/pytorch/torch/optim/")
 sys.path.append("/home/pavel_i/projects/pytorch_swa/torch/optim")
-from swa_utils import AveragedModel, bn_update, SWALR
+from swa_utils import AveragedModel, update_bn, SWALR
+# from torch.optim.swa_utils import AveragedModel, update_bn, SWALR
 
 
 parser = argparse.ArgumentParser(description='SGD/SWA training')
@@ -39,6 +40,7 @@ parser.add_argument('--swa_start', type=float, default=161, metavar='N', help='S
 parser.add_argument('--swa_lr', type=float, default=0.05, metavar='LR', help='SWA LR (default: 0.05)')
 parser.add_argument('--swa_c_epochs', type=int, default=1, metavar='N',
                     help='SWA model collection frequency/cycle length in epochs (default: 1)')
+parser.add_argument('--swa_on_cpu', action='store_true', help='store swa model on cpu flag (default: off)')
 
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
 
@@ -82,14 +84,20 @@ num_classes = max(train_set.targets) + 1
 
 print('Preparing model')
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
-model.cuda()
-if len(args.gpu_ids > 1):
+if len(args.gpu_ids) > 1:
     model = torch.nn.DataParallel(model, args.gpu_ids)
     print("Using gpu_ids {}".format(args.gpu_ids))
+    device = torch.device(model.device_ids[0])
+else:
+    device = torch.device("cuda:0")
+model.to(device)
 
 if args.swa:
     print('SWA training')
-    swa_model = AveragedModel(model)
+    if args.swa_on_cpu:
+        swa_model = AveragedModel(model, device=torch.device('cpu'))
+    else:
+        swa_model = AveragedModel(model)
 else:
     print('SGD training')
 
@@ -115,7 +123,7 @@ optimizer = torch.optim.SGD(
 )
 
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
-swa_scheduler = SWALR(optimizer, start_epoch=args.swa_start, swa_lr=args.swa_lr)
+swa_scheduler = SWALR(optimizer, swa_lr=args.swa_lr)
 
 start_epoch = 0
 if args.resume is not None:
@@ -145,22 +153,32 @@ utils.save_checkpoint(
 for epoch in range(start_epoch, args.epochs):
     time_ep = time.time()
 
-    train_res = utils.train_epoch(loaders['train'], model, criterion, optimizer)
+    train_res = utils.train_epoch(loaders['train'], model, criterion, optimizer, device=device)
     if epoch == 0 or epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
-        test_res = utils.eval(loaders['test'], model, criterion)
+        test_res = utils.eval(loaders['test'], model, criterion, device=device)
     else:
         test_res = {'loss': None, 'accuracy': None}
 
     lr = optimizer.param_groups[0]['lr']
-    scheduler.step()
-    swa_scheduler.step()
 
+    if args.swa and (epoch + 1) >= args.swa_start:
+        swa_scheduler.step()
+    else:
+        scheduler.step()
     if args.swa and (epoch + 1) >= args.swa_start and (epoch + 1 - args.swa_start) % args.swa_c_epochs == 0:
         swa_model.update_parameters(model)
 
         if epoch == 0 or epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
-            bn_update(loaders['train'], swa_model, device=torch.device('cuda'))
-            swa_res = utils.eval(loaders['test'], swa_model, criterion)
+            update_bn(loaders['train'], swa_model, device=torch.device('cuda'))
+            if args.swa_on_cpu:
+                # moving swa_model to gpu for evaluation
+                model = model.cpu()
+                swa_model = swa_model.to(device)
+            print("SWA eval")
+            swa_res = utils.eval(loaders['test'], swa_model, criterion, device=device)
+            if args.swa_on_cpu:
+                model = model.to(device)
+                swa_model = swa_model.cpu()
         else:
             swa_res = {'loss': None, 'accuracy': None}
 

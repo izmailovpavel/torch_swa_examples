@@ -11,15 +11,15 @@ def save_checkpoint(dir, epoch, **kwargs):
     torch.save(state, filepath)
 
 
-def train_epoch(loader, model, criterion, optimizer):
+def train_epoch(loader, model, criterion, optimizer, device):
     loss_sum = 0.0
     correct = 0.0
 
     model.train()
 
     for i, (input, target) in enumerate(loader):
-        input = input.cuda()
-        target = target.cuda()
+        input = input.to(device)
+        target = target.to(device)
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
@@ -40,15 +40,15 @@ def train_epoch(loader, model, criterion, optimizer):
     }
 
 
-def eval(loader, model, criterion):
+def eval(loader, model, criterion, device):
     loss_sum = 0.0
     correct = 0.0
 
     model.eval()
 
     for i, (input, target) in enumerate(loader):
-        input = input.cuda()
-        target = target.cuda()
+        input = input.to(device)
+        target = target.to(device)
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
