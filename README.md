@@ -29,9 +29,8 @@ Please cite our work if you find this approach useful in your research:
 
 
 # Dependencies
-* [PyTorch](http://pytorch.org/)
+* [PyTorch 1.6 or later](http://pytorch.org/)
 * [torchvision](https://github.com/pytorch/vision/)
-* [torch-contrib](https://github.com/pytorch/contrib)
 * [tabulate](https://pypi.python.org/pypi/tabulate/)
 
 # Usage
