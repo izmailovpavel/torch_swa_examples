@@ -118,8 +118,13 @@ Below we show the convergence plot for SWA and SGD with PreResNet164 on CIFAR-10
  
 # References
  
- Provided model implementations were adapted from
+Provided model implementations were adapted from
  * VGG: [github.com/pytorch/vision/](https://github.com/pytorch/vision/)
  * PreResNet: [github.com/bearpaw/pytorch-classification](https://github.com/bearpaw/pytorch-classification)
  * WideResNet: [github.com/meliketoy/wide-resnet.pytorch](https://github.com/meliketoy/wide-resnet.pytorch)
-
+ 
+Other repos and implementations:
+ * Original implementation: https://github.com/timgaripov/swa
+ * PyTorch Contrib implementation: https://github.com/pytorch/contrib
+ * Tensorflow implementation: https://www.tensorflow.org/addons/api_docs/python/tfa/optimizers/SWA
+ * Chainer implementation: https://github.com/chainer/models/tree/master/swa
