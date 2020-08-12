@@ -1,5 +1,5 @@
 # Stochastic Weight Averaging (SWA)
-This repository contains examples of using the implementation of the Stochastic Weight Averaging (SWA) training method for DNNs in `PyTorch.contrib`. The code in this repo is adapted from the original `PyTorch` [implementation](https://github.com/timgaripov/swa). Please see the [PyTorch blog post](https://pytorch.org/blog/stochastic-weight-averaging-in-pytorch/) for more details about SWA and the `PyTorch.contrib` implementation. SWA was proposed in the paper
+Stochastic Weight Averaging (SWA) is now natively supported in PyTorch 1.6! This repository contains examples of using the implementation of the SWA training method for DNNs in [`torch.optim.swa_utils`](https://pytorch.org/docs/stable/optim.html#stochastic-weight-averaging). The code in this repo is adapted from the original `PyTorch` [implementation](https://github.com/timgaripov/swa). Please see the new PyTorch blog post for more details about SWA and the `torch.optim` implementation. SWA was proposed in the paper
 
 [Averaging Weights Leads to Wider Optima and Better Generalization](https://arxiv.org/abs/1803.05407) (UAI 2018)
 
@@ -105,30 +105,16 @@ python3 train.py --dir=<DIR> --dataset=CIFAR100 --data_path=<PATH> --model=WideR
 
 Test accuracy (%) of SGD and SWA on CIFAR-100 for different training budgets. For each model the _Budget_ is defined as the number of epochs required to train the model with the conventional SGD procedure.
 
-| DNN (Budget)              |  SGD         | SWA 1 Budget | SWA 1.25 Budgets | SWA 1.5 Budgets |
-| ------------------------- |:------------:|:------------:|:----------------:|:---------------:|
-| VGG16 (200)               | 72.55 ± 0.10 | 73.91 ± 0.12 | 74.17 ± 0.15     | 74.27 ± 0.25    |
-| PreResNet110 (150)        | 76.77 ± 0.38 | 78.75 ± 0.16 | 78.91 ± 0.29     | 79.10 ± 0.21    |
-| PreResNet164 (150)        | 78.49 ± 0.36 | 79.77 ± 0.17 | 80.18 ± 0.23     | 80.35 ± 0.16    |
-| WideResNet28x10 (200)     | 80.82 ± 0.23 | 81.46 ± 0.23 | 81.91 ± 0.27     | 82.15 ± 0.27    |
+|                  | VGG-16     | ResNet-164 | WideResNet-28x10 |
+|------------------|------------|------------|------------------|
+| Regular Training | 72.8 ± 0.3 | 78.4 ± 0.3 | 81.0 ± 0.3       |
+| SWA              | 74.4 ± 0.3 | 79.8 ± 0.4 | 82.5 ± 0.2       |
 
 Below we show the convergence plot for SWA and SGD with PreResNet164 on CIFAR-100 and the corresponding learning rates. The dashed line illustrates the accuracy of individual models averaged by SWA.
 
 <p align="center">
 <img src="https://user-images.githubusercontent.com/14368801/37633527-226bb2d6-2bc9-11e8-9be6-097c0dfe64ab.png" width=500>
 </p>
-
-
-## CIFAR-10
-
-Test accuracy (%) of SGD and SWA on CIFAR-10 for different training budgets.
-
-| DNN (Budget)              |  SGD         | SWA 1 Budget | SWA 1.25 Budgets | SWA 1.5 Budgets |
-| ------------------------- |:------------:|:------------:|:----------------:|:---------------:|
-| VGG16 (200)               | 93.25 ± 0.16 | 93.59 ± 0.16 | 93.70 ± 0.22     | 93.64 ± 0.18    |
-| PreResNet110 (150)        | 95.03 ± 0.05 | 95.51 ± 0.10 | 95.65 ± 0.03     | 95.82 ± 0.03    |
-| PreResNet164 (150)        | 95.28 ± 0.10 | 95.56 ± 0.11 | 95.77 ± 0.04     | 95.83 ± 0.03    |
-| WideResNet28x10 (200)     | 96.18 ± 0.11 | 96.45 ± 0.11 | 96.64 ± 0.08     | 96.79 ± 0.05    |
  
 # References
  
