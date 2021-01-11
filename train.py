@@ -10,8 +10,8 @@ import utils
 import tabulate
 sys.path.append("/home/izmailovpavel/Documents/Projects/pytorch/torch/optim/")
 sys.path.append("/home/pavel_i/projects/pytorch_swa/torch/optim")
-from swa_utils import AveragedModel, update_bn, SWALR
-# from torch.optim.swa_utils import AveragedModel, update_bn, SWALR
+# from swa_utils import AveragedModel, update_bn, SWALR
+from torch.optim.swa_utils import AveragedModel, update_bn, SWALR
 
 
 parser = argparse.ArgumentParser(description='SGD/SWA training')
